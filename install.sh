@@ -13,8 +13,8 @@ echo "=============================================="
 
 echo "Installing dependencies..."
 apt update
-apt install docker.io
-apt install docker-compose
+apt install -y docker.io
+apt install -y docker-compose
 
 echo "Setting up Pihole..."
 IFS=' ' read -ra IP <<< "$(hostname -I)"
@@ -45,6 +45,7 @@ DOCKER_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{
 
 echo "Installing OpenVPN..."
 wget https://git.io/vpn -O openvpn-install.sh
+chmod +x openvpn-install.sh
 ./openvpn-install.sh
 echo "Configuring OpenVPN..."
 sed -i '/push \"dhcp-option DNS/d' /etc/openvpn/server/server.conf
