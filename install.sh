@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ "$EUID" -ne 0 ]; then
+    echo "Please run the script as root"
+    exit 1
+fi
 
 echo "=============================================="
 echo "|                                            |"
@@ -8,7 +12,6 @@ echo "|                                            |"
 echo "=============================================="
 
 echo "Installing dependencies..."
-
 apt update
 apt install docker.io
 apt install docker-compose
@@ -32,12 +35,20 @@ if [ "$PIHOLE_PASS" != "$PIHOLE_PASS_CONFIRM" ]; then
     exit 1
 fi
 
+cp docker-compose.template.yml docker-compose.yml
+sed -i "s/<INTERNAL_IP>/$INTERNAL_IP/g" docker-compose.yml
+sed -i "s/<PIHOLE_PASS>/$PIHOLE_PASS/g" docker-compose.yml
+
 echo "Deploying Pihole..."
-docker-compose up -d
+docker-compose -f docker-compose.yml up -d
+DOCKER_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' pihole)
 
 echo "Installing OpenVPN..."
-
+wget https://git.io/vpn -O openvpn-install.sh
+./openvpn-install.sh
 echo "Configuring OpenVPN..."
+sed -i '/push \"dhcp-option DNS/d' /etc/openvpn/server/server.conf
+sed -i "15 i push \"dhcp-option DNS $DOCKER_IP\"" /etc/openvpn/server/server.conf
 
 echo "Restarting OpenVPN Server..."
 service openvpn restart
